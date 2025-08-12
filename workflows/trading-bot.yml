@@ -2,13 +2,13 @@ name: XAUT-USDT Trading Bot
 
 on:
   schedule:
-    - cron: '*/25 * * * *'  # Jalankan setiap 25 menit
-  workflow_dispatch:       # Memungkinkan run manual
+    - cron: '*/5 * * * *'  # Run every 5 minutes
+  workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     
     steps:
     - name: Checkout code
@@ -23,21 +23,22 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install feedparser textblob pandas requests numpy ta gspread google-auth
+        pip list  # Print installed packages for debugging
         
     - name: Run trading bot
       env:
         SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      run: python trading_bot.py
-      
-    - name: Notify on failure
-      if: failure()
-      uses: actions/github-script@v6
+      run: |
+        echo "Starting trading bot..."
+        python trading_bot.py
+        echo "Trading bot finished"
+        
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v3
       with:
-        script: |
-          github.rest.issues.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            title: "Trading Bot Failed",
-            body: "The trading bot script failed. Please check the logs."
-          })
+        name: trading-bot-logs
+        path: |
+          *.log
+          *.txt
